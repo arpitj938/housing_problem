@@ -422,3 +422,34 @@ test_new.drop(drop_cols, axis=1, inplace=True)
 
 label_df = pd.DataFrame(index = train_new.index, columns = ['SalePrice'])
 label_df['SalePrice'] = np.log(train['SalePrice'])
+
+import xgboost as xgb
+regr = xgb.XGBRegressor(colsample_bytree=0.2,
+                       gamma=0.0,
+                       learning_rate=0.05,
+                       max_depth=6,
+                       min_child_weight=1.5,
+                       n_estimators=7200,
+                       reg_alpha=0.9,
+                       reg_lambda=0.6,
+                       subsample=0.2,
+                       seed=42,
+                       silent=1)
+
+regr.fit(train_new, label_df)
+
+from sklearn.metrics import mean_squared_error
+def rmse(y_test,y_pred):
+      return np.sqrt(mean_squared_error(y_test,y_pred))
+
+# run prediction on training set to get an idea of how well it does
+y_pred = regr.predict(train_new)
+y_test = label_df
+print("XGBoost score on training set: ", rmse(y_test, y_pred))
+
+# make prediction on test set
+y_pred_xgb = regr.predict(test_new)
+
+#submit this prediction and get the score
+pred1 = pd.DataFrame({'Id': test['Id'], 'SalePrice': np.exp(y_pred_xgb)})
+pred1.to_csv('xgbnono.csv', header=True, index=False)
