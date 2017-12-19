@@ -192,4 +192,233 @@ alldata = factorize(alldata, "Exterior1st", "Other")
 alldata = factorize(alldata, "Exterior2nd", "Other")
 alldata = factorize(alldata, "MasVnrType", "None")
 alldata = factorize(alldata, "SaleType", "Oth")
-    
+
+#part that come from experience 
+
+#creating new variable (1 or 0) based on irregular count levels
+#The level with highest count is kept as 1 and rest as 0
+alldata["IsRegularLotShape"] = (alldata["LotShape"] == "Reg") * 1
+alldata["IsLandLevel"] = (alldata["LandContour"] == "Lvl") * 1
+alldata["IsLandSlopeGentle"] = (alldata["LandSlope"] == "Gtl") * 1
+alldata["IsElectricalSBrkr"] = (alldata["Electrical"] == "SBrkr") * 1
+alldata["IsGarageDetached"] = (alldata["GarageType"] == "Detchd") * 1
+alldata["IsPavedDrive"] = (alldata["PavedDrive"] == "Y") * 1
+alldata["HasShed"] = (alldata["MiscFeature"] == "Shed") * 1
+alldata["Remodeled"] = (alldata["YearRemodAdd"] != alldata["YearBuilt"]) * 1
+
+#Did the modeling happen during the sale year?
+alldata["RecentRemodel"] = (alldata["YearRemodAdd"] == alldata["YrSold"]) * 1
+
+# Was this house sold in the year it was built?
+alldata["VeryNewHouse"] = (alldata["YearBuilt"] == alldata["YrSold"]) * 1
+alldata["Has2ndFloor"] = (alldata["2ndFlrSF"] == 0) * 1
+alldata["HasMasVnr"] = (alldata["MasVnrArea"] == 0) * 1
+alldata["HasWoodDeck"] = (alldata["WoodDeckSF"] == 0) * 1
+alldata["HasOpenPorch"] = (alldata["OpenPorchSF"] == 0) * 1
+alldata["HasEnclosedPorch"] = (alldata["EnclosedPorch"] == 0) * 1
+alldata["Has3SsnPorch"] = (alldata["3SsnPorch"] == 0) * 1
+alldata["HasScreenPorch"] = (alldata["ScreenPorch"] == 0) * 1
+
+#setting levels with high count as 1 and the rest as 0
+#you can check for them using the value_counts function
+alldata["HighSeason"] = alldata["MoSold"].replace({1: 0, 2: 0, 3: 0, 4: 1, 5: 1, 6: 1, 7: 1, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0})
+alldata["NewerDwelling"] = alldata["MSSubClass"].replace({20: 1, 30: 0, 40: 0, 45: 0,50: 0, 60: 1, 70: 0, 75: 0, 80: 0, 85: 0,90: 0, 120: 1, 150: 0, 160: 0, 180: 0, 190: 0})
+
+#create alldata2
+alldata2 = train.append(test)
+
+alldata["SaleCondition_PriceDown"] = alldata2.SaleCondition.replace({'Abnorml': 1, 'Alloca': 1, 'AdjLand': 1, 'Family': 1, 'Normal': 0, 'Partial': 0})
+
+# house completed before sale or not
+alldata["BoughtOffPlan"] = alldata2.SaleCondition.replace({"Abnorml" : 0, "Alloca" : 0, "AdjLand" : 0, "Family" : 0, "Normal" : 0, "Partial" : 1})
+alldata["BadHeating"] = alldata2.HeatingQC.replace({'Ex': 0, 'Gd': 0, 'TA': 0, 'Fa': 1, 'Po': 1})
+
+#calculating total area using all area columns
+area_cols = ['LotFrontage', 'LotArea', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF','TotalBsmtSF', '1stFlrSF', '2ndFlrSF', 'GrLivArea', 'GarageArea', 'WoodDeckSF','OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'LowQualFinSF', 'PoolArea' ]
+
+alldata["TotalArea"] = alldata[area_cols].sum(axis=1)
+alldata["TotalArea1st2nd"] = alldata["1stFlrSF"] + alldata["2ndFlrSF"]
+alldata["Age"] = 2010 - alldata["YearBuilt"]
+alldata["TimeSinceSold"] = 2010 - alldata["YrSold"]
+alldata["SeasonSold"] = alldata["MoSold"].map({12:0, 1:0, 2:0, 3:1, 4:1, 5:1, 6:2, 7:2, 8:2, 9:3, 10:3, 11:3}).astype(int)
+alldata["YearsSinceRemodel"] = alldata["YrSold"] - alldata["YearRemodAdd"]
+
+# Simplifications of existing features into bad/average/good based on counts
+alldata["SimplOverallQual"] = alldata.OverallQual.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2, 6 : 2, 7 : 3, 8 : 3, 9 : 3, 10 : 3})
+alldata["SimplOverallCond"] = alldata.OverallCond.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2, 6 : 2, 7 : 3, 8 : 3, 9 : 3, 10 : 3})
+alldata["SimplPoolQC"] = alldata.PoolQC.replace({1 : 1, 2 : 1, 3 : 2, 4 : 2})
+alldata["SimplGarageCond"] = alldata.GarageCond.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplGarageQual"] = alldata.GarageQual.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplFireplaceQu"] = alldata.FireplaceQu.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplFireplaceQu"] = alldata.FireplaceQu.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplFunctional"] = alldata.Functional.replace({1 : 1, 2 : 1, 3 : 2, 4 : 2, 5 : 3, 6 : 3, 7 : 3, 8 : 4})
+alldata["SimplKitchenQual"] = alldata.KitchenQual.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplHeatingQC"] = alldata.HeatingQC.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplBsmtFinType1"] = alldata.BsmtFinType1.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2, 6 : 2})
+alldata["SimplBsmtFinType2"] = alldata.BsmtFinType2.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2, 6 : 2})
+alldata["SimplBsmtCond"] = alldata.BsmtCond.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplBsmtQual"] = alldata.BsmtQual.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplExterCond"] = alldata.ExterCond.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+alldata["SimplExterQual"] = alldata.ExterQual.replace({1 : 1, 2 : 1, 3 : 1, 4 : 2, 5 : 2})
+
+#grouping neighborhood variable based on this plot
+train['SalePrice'].groupby(train['Neighborhood']).median().sort_values().plot(kind='bar')
+
+neighborhood_map = {"MeadowV" : 0, "IDOTRR" : 1, "BrDale" : 1, "OldTown" : 1, "Edwards" : 1, "BrkSide" : 1, "Sawyer" : 1, "Blueste" : 1, "SWISU" : 2, "NAmes" : 2, "NPkVill" : 2, "Mitchel" : 2, "SawyerW" : 2, "Gilbert" : 2, "NWAmes" : 2, "Blmngtn" : 2, "CollgCr" : 2, "ClearCr" : 3, "Crawfor" : 3, "Veenker" : 3, "Somerst" : 3, "Timber" : 3, "StoneBr" : 4, "NoRidge" : 4, "NridgHt" : 4}
+
+alldata['NeighborhoodBin'] = alldata2['Neighborhood'].map(neighborhood_map)
+alldata.loc[alldata2.Neighborhood == 'NridgHt', "Neighborhood_Good"] = 1
+alldata.loc[alldata2.Neighborhood == 'Crawfor', "Neighborhood_Good"] = 1
+alldata.loc[alldata2.Neighborhood == 'StoneBr', "Neighborhood_Good"] = 1
+alldata.loc[alldata2.Neighborhood == 'Somerst', "Neighborhood_Good"] = 1
+alldata.loc[alldata2.Neighborhood == 'NoRidge', "Neighborhood_Good"] = 1
+alldata["Neighborhood_Good"].fillna(0, inplace=True)
+alldata["SaleCondition_PriceDown"] = alldata2.SaleCondition.replace({'Abnorml': 1, 'Alloca': 1, 'AdjLand': 1, 'Family': 1, 'Normal': 0, 'Partial': 0})
+
+# House completed before sale or not
+alldata["BoughtOffPlan"] = alldata2.SaleCondition.replace({"Abnorml" : 0, "Alloca" : 0, "AdjLand" : 0, "Family" : 0, "Normal" : 0, "Partial" : 1})
+alldata["BadHeating"] = alldata2.HeatingQC.replace({'Ex': 0, 'Gd': 0, 'TA': 0, 'Fa': 1, 'Po': 1})
+
+train_new = alldata[alldata['SalePrice'].notnull()]
+test_new = alldata[alldata['SalePrice'].isnull()]
+
+#get numeric features
+numeric_features = [f for f in train_new.columns if train_new[f].dtype != object]
+
+#transform the numeric features using log(x + 1)
+from scipy.stats import skew
+skewed = train_new[numeric_features].apply(lambda x: skew(x.dropna().astype(float)))
+skewed = skewed[skewed > 0.75]
+skewed = skewed.index
+train_new[skewed] = np.log1p(train_new[skewed])
+test_new[skewed] = np.log1p(test_new[skewed])
+
+del test_new['SalePrice']
+
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+scaler.fit(train_new[numeric_features])
+scaled = scaler.transform(train_new[numeric_features])
+
+for i, col in enumerate(numeric_features):
+       train_new[col] = scaled[:,i]
+
+numeric_features.remove('SalePrice')
+scaled = scaler.fit_transform(test_new[numeric_features])
+
+for i, col in enumerate(numeric_features):
+      test_new[col] = scaled[:,i]
+
+
+def onehot(onehot_df, df, column_name, fill_na):
+       onehot_df[column_name] = df[column_name]
+       if fill_na is not None:
+            onehot_df[column_name].fillna(fill_na, inplace=True)
+
+       dummies = pd.get_dummies(onehot_df[column_name], prefix="_"+column_name)
+       onehot_df = onehot_df.join(dummies)
+       onehot_df = onehot_df.drop([column_name], axis=1)
+       return onehot_df
+
+def munge_onehot(df):
+       onehot_df = pd.DataFrame(index = df.index)
+
+       onehot_df = onehot(onehot_df, df, "MSSubClass", None)
+       onehot_df = onehot(onehot_df, df, "MSZoning", "RL")
+       onehot_df = onehot(onehot_df, df, "LotConfig", None)
+       onehot_df = onehot(onehot_df, df, "Neighborhood", None)
+       onehot_df = onehot(onehot_df, df, "Condition1", None)
+       onehot_df = onehot(onehot_df, df, "BldgType", None)
+       onehot_df = onehot(onehot_df, df, "HouseStyle", None)
+       onehot_df = onehot(onehot_df, df, "RoofStyle", None)
+       onehot_df = onehot(onehot_df, df, "Exterior1st", "VinylSd")
+       onehot_df = onehot(onehot_df, df, "Exterior2nd", "VinylSd")
+       onehot_df = onehot(onehot_df, df, "Foundation", None)
+       onehot_df = onehot(onehot_df, df, "SaleType", "WD")
+       onehot_df = onehot(onehot_df, df, "SaleCondition", "Normal")
+
+       #Fill in missing MasVnrType for rows that do have a MasVnrArea.
+       temp_df = df[["MasVnrType", "MasVnrArea"]].copy()
+       idx = (df["MasVnrArea"] != 0) & ((df["MasVnrType"] == "None") | (df["MasVnrType"].isnull()))
+       temp_df.loc[idx, "MasVnrType"] = "BrkFace"
+       onehot_df = onehot(onehot_df, temp_df, "MasVnrType", "None")
+
+       onehot_df = onehot(onehot_df, df, "LotShape", None)
+       onehot_df = onehot(onehot_df, df, "LandContour", None)
+       onehot_df = onehot(onehot_df, df, "LandSlope", None)
+       onehot_df = onehot(onehot_df, df, "Electrical", "SBrkr")
+       onehot_df = onehot(onehot_df, df, "GarageType", "None")
+       onehot_df = onehot(onehot_df, df, "PavedDrive", None)
+       onehot_df = onehot(onehot_df, df, "MiscFeature", "None")
+       onehot_df = onehot(onehot_df, df, "Street", None)
+       onehot_df = onehot(onehot_df, df, "Alley", "None")
+       onehot_df = onehot(onehot_df, df, "Condition2", None)
+       onehot_df = onehot(onehot_df, df, "RoofMatl", None)
+       onehot_df = onehot(onehot_df, df, "Heating", None)
+
+       # we'll have these as numerical variables too
+       onehot_df = onehot(onehot_df, df, "ExterQual", "None")
+       onehot_df = onehot(onehot_df, df, "ExterCond", "None")
+       onehot_df = onehot(onehot_df, df, "BsmtQual", "None")
+       onehot_df = onehot(onehot_df, df, "BsmtCond", "None")
+       onehot_df = onehot(onehot_df, df, "HeatingQC", "None")
+       onehot_df = onehot(onehot_df, df, "KitchenQual", "TA")
+       onehot_df = onehot(onehot_df, df, "FireplaceQu", "None")
+       onehot_df = onehot(onehot_df, df, "GarageQual", "None")
+       onehot_df = onehot(onehot_df, df, "GarageCond", "None")
+       onehot_df = onehot(onehot_df, df, "PoolQC", "None")
+       onehot_df = onehot(onehot_df, df, "BsmtExposure", "None")
+       onehot_df = onehot(onehot_df, df, "BsmtFinType1", "None")
+       onehot_df = onehot(onehot_df, df, "BsmtFinType2", "None")
+       onehot_df = onehot(onehot_df, df, "Functional", "Typ")
+       onehot_df = onehot(onehot_df, df, "GarageFinish", "None")
+       onehot_df = onehot(onehot_df, df, "Fence", "None")
+       onehot_df = onehot(onehot_df, df, "MoSold", None)
+
+       # Divide  the years between 1871 and 2010 into slices of 20 years
+       year_map = pd.concat(pd.Series("YearBin" + str(i+1), index=range(1871+i*20,1891+i*20))  for i in range(0, 7))
+       yearbin_df = pd.DataFrame(index = df.index)
+       yearbin_df["GarageYrBltBin"] = df.GarageYrBlt.map(year_map)
+       yearbin_df["GarageYrBltBin"].fillna("NoGarage", inplace=True)
+       yearbin_df["YearBuiltBin"] = df.YearBuilt.map(year_map)
+       yearbin_df["YearRemodAddBin"] = df.YearRemodAdd.map(year_map)
+
+       onehot_df = onehot(onehot_df, yearbin_df, "GarageYrBltBin", None)
+       onehot_df = onehot(onehot_df, yearbin_df, "YearBuiltBin", None)
+       onehot_df = onehot(onehot_df, yearbin_df, "YearRemodAddBin", None)
+       return onehot_df
+
+#create one-hot features
+onehot_df = munge_onehot(train)
+
+neighborhood_train = pd.DataFrame(index=train_new.shape)
+neighborhood_train['NeighborhoodBin'] = train_new['NeighborhoodBin']
+neighborhood_test = pd.DataFrame(index=test_new.shape)
+neighborhood_test['NeighborhoodBin'] = test_new['NeighborhoodBin']
+
+onehot_df = onehot(onehot_df, neighborhood_train, 'NeighborhoodBin', None)
+
+train_new = train_new.join(onehot_df) 
+
+#adding one hot features to test
+onehot_df_te = munge_onehot(test)
+onehot_df_te = onehot(onehot_df_te, neighborhood_test, "NeighborhoodBin", None)
+test_new = test_new.join(onehot_df_te)
+
+#dropping some columns from the train data as they are not found in test
+drop_cols = ["_Exterior1st_ImStucc", "_Exterior1st_Stone","_Exterior2nd_Other","_HouseStyle_2.5Fin","_RoofMatl_Membran", "_RoofMatl_Metal", "_RoofMatl_Roll", "_Condition2_RRAe", "_Condition2_RRAn", "_Condition2_RRNn", "_Heating_Floor", "_Heating_OthW", "_Electrical_Mix", "_MiscFeature_TenC", "_GarageQual_Ex",  "_PoolQC_Fa"]
+train_new.drop(drop_cols, axis=1, inplace=True)
+
+#removing one column missing from train data
+test_new.drop(["_MSSubClass_150"], axis=1, inplace=True)
+
+# Drop these columns
+drop_cols = ["_Condition2_PosN", # only two are not zero
+         "_MSZoning_C (all)",
+         "_MSSubClass_160"]
+
+train_new.drop(drop_cols, axis=1, inplace=True)
+test_new.drop(drop_cols, axis=1, inplace=True)
+
+label_df = pd.DataFrame(index = train_new.index, columns = ['SalePrice'])
+label_df['SalePrice'] = np.log(train['SalePrice'])
