@@ -63,5 +63,51 @@ corr = numeric_data.corr()
 
 print corr['SalePrice'].sort_values(ascending=False)[:28]
 
+#see catorical data description
+#print cat_data.describe()
+
+
+#ANOVA defination 
+cat = [f for f in train.columns if train.dtypes[f] == 'object']
+def anova(frame):
+    anv = pd.DataFrame()
+    anv['features'] = cat
+    pvals = []
+    for c in cat:
+           samples = []
+           for cls in frame[c].unique():
+                  s = frame[frame[c] == cls]['SalePrice'].values
+                  samples.append(s)
+           pval = stats.f_oneway(*samples)[1]
+           pvals.append(pval)
+    anv['pval'] = pvals
+    return anv.sort_values('pval')
+
+cat_data['SalePrice'] = train.SalePrice.values
+k = anova(cat_data) 
+k['disparity'] = np.log(1./k['pval'].values) 
+sns.barplot(data=k, x = 'features', y='disparity') 
+plt.xticks(rotation=90) 
+plt 
+
+#create numeric plots
+num = [f for f in train.columns if train.dtypes[f] != 'object']
+num.remove('Id')
+nd = pd.melt(train, value_vars = num)
+n1 = sns.FacetGrid (nd, col='variable', col_wrap=4, sharex=False, sharey = False)
+n1 = n1.map(sns.distplot, 'value')
+n1
+
+#For categorial data
+def boxplot(x,y,**kwargs):
+            sns.boxplot(x=x,y=y)
+            x = plt.xticks(rotation=90)
+
+cat = [f for f in train.columns if train.dtypes[f] == 'object']
+
+p = pd.melt(train, id_vars='SalePrice', value_vars=cat)
+g = sns.FacetGrid (p, col='variable', col_wrap=2, sharex=False, sharey=False, size=5)
+g = g.map(boxplot, 'value','SalePrice')
+g
 
 
